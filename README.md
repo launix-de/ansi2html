@@ -43,6 +43,13 @@ $ ansi2html git log -p > git-log.html
 $ ansi2html --inline -- git log -p > inline-git-log.html
 ```
 
+For embeddable snippets, use `--standalone` (or `-S`) to wrap the converted output in a
+`<code>` element without the full HTML template:
+
+```shell
+$ echo $'\e[31mRED\e[0m' | ansi2html --standalone
+```
+
 See the list of full options with:
 
 ```shell

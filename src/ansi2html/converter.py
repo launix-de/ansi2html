@@ -720,6 +720,17 @@ def main() -> None:
         help="Inline style without headers or template.",
     )
     parser.add_argument(
+        "-S",
+        "--standalone",
+        dest="standalone",
+        default=False,
+        action="store_true",
+        help=(
+            "Like --inline, but wrap the snippet in a <code> element. "
+            "(HTML output only)"
+        ),
+    )
+    parser.add_argument(
         "-H",
         "--headers",
         dest="headers",
@@ -832,9 +843,11 @@ def main() -> None:
 
     opts = parser.parse_args(ansi_args)
 
+    inline_mode = bool(opts.inline or opts.standalone)
+
     conv = Ansi2HTMLConverter(
         latex=opts.latex,
-        inline=opts.inline,
+        inline=inline_mode,
         dark_bg=not opts.light_background,
         line_wrap=not opts.no_line_wrap,
         font_size=opts.font_size,
@@ -865,7 +878,7 @@ def main() -> None:
         _print(conv.produce_headers(), end="")
         return
 
-    full = not bool(opts.partial or opts.inline)
+    full = not bool(opts.partial or inline_mode)
 
     if cmd_args:
         # Run the command inside a PTY so it emits color, capture output
@@ -927,10 +940,14 @@ def main() -> None:
 
         ansi_text = b"".join(chunks).decode(opts.input_encoding, "replace")
         output = conv.convert(ansi_text, full=full, ensure_trailing_newline=True)
+        if opts.standalone and not opts.latex:
+            output = f"<code style=\"white-space: pre;\">{output}</code>"
         _print(output, end="")
         return
     else:
         output = conv.convert(
             "".join(sys.stdin.readlines()), full=full, ensure_trailing_newline=True
         )
+        if opts.standalone and not opts.latex:
+            output = f"<code style=\"white-space: pre;\">{output}</code>"
         _print(output, end="")

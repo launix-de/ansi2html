@@ -39,6 +39,10 @@ OPTIONS
 *-i*, *--inline*::
 	Inline style without headers or template.
 
+
+*-S*, *--standalone*::
+	Like --inline, but wrap the snippet in a "<code>" element (HTML output only).
+
 *-H*, *--headers*::
 	Just produce the "<style>" tag.
 
@@ -102,6 +106,9 @@ $ ansi2html --inline -- git log -p > inline-git-log.html
 
 # Disable pager explicitly (optional; ansi2html defaults to no pager):
 $ GIT_PAGER=cat ansi2html -- git show HEAD
+
+# Produce an inline snippet wrapped in <code> (no full HTML):
+$ echo $'\e[31mRED\e[0m' | ansi2html --standalone
 -------------------
 
 
