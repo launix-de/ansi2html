@@ -222,6 +222,8 @@ class TestAnsi2HTML:
 
         assert expected == html
 
+    
+
     def test_produce_headers(self) -> None:
         conv = Ansi2HTMLConverter()
         headers = conv.produce_headers()
