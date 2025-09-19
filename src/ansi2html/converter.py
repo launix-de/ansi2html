@@ -21,12 +21,12 @@
 #  Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import argparse
+import io
 import os
 import pty
+import re
 import select
 import subprocess
-import io
-import re
 import sys
 from collections import OrderedDict
 from typing import Iterator, List, Optional, Set, Tuple, Union
@@ -893,45 +893,44 @@ def main() -> None:
 
         master_fd, slave_fd = pty.openpty()
         try:
-            proc = subprocess.Popen(
-                cmd_args,
-                stdin=slave_fd,
-                stdout=slave_fd,
-                stderr=slave_fd,
-                env=env,
-                close_fds=True,
-            )
-        except FileNotFoundError:
-            os.close(master_fd)
-            os.close(slave_fd)
-            raise
+            try:
+                with subprocess.Popen(
+                    cmd_args,
+                    stdin=slave_fd,
+                    stdout=slave_fd,
+                    stderr=slave_fd,
+                    env=env,
+                    close_fds=True,
+                ) as proc:
+                    # Parent does not use the slave end
+                    os.close(slave_fd)
 
-        # Parent does not use the slave end
-        os.close(slave_fd)
-
-        chunks: List[bytes] = []
-        try:
-            while True:
-                rlist, _, _ = select.select([master_fd], [], [], 0.1)
-                if master_fd in rlist:
-                    try:
-                        data = os.read(master_fd, 4096)
-                    except OSError:
-                        break
-                    if not data:
-                        break
-                    chunks.append(data)
-                # Break when the process exits and the PTY drained
-                if proc.poll() is not None and not rlist:
-                    # Try one last read; if nothing, break
-                    try:
-                        data = os.read(master_fd, 4096)
-                        if data:
+                    chunks: List[bytes] = []
+                    while True:
+                        rlist, _, _ = select.select([master_fd], [], [], 0.1)
+                        if master_fd in rlist:
+                            try:
+                                data = os.read(master_fd, 4096)
+                            except OSError:
+                                break
+                            if not data:
+                                break
                             chunks.append(data)
-                            continue
-                    except OSError:
-                        pass
-                    break
+                        # Break when the process exits and the PTY drained
+                        if proc.poll() is not None and not rlist:
+                            # Try one last read; if nothing, break
+                            try:
+                                data = os.read(master_fd, 4096)
+                                if data:
+                                    chunks.append(data)
+                                    continue
+                            except OSError:
+                                pass
+                            break
+            except FileNotFoundError:
+                os.close(master_fd)
+                os.close(slave_fd)
+                raise
         finally:
             try:
                 os.close(master_fd)
@@ -939,15 +938,10 @@ def main() -> None:
                 pass
 
         ansi_text = b"".join(chunks).decode(opts.input_encoding, "replace")
-        output = conv.convert(ansi_text, full=full, ensure_trailing_newline=True)
-        if opts.standalone and not opts.latex:
-            output = f"<code style=\"white-space: pre;\">{output}</code>"
-        _print(output, end="")
-        return
     else:
-        output = conv.convert(
-            "".join(sys.stdin.readlines()), full=full, ensure_trailing_newline=True
-        )
-        if opts.standalone and not opts.latex:
-            output = f"<code style=\"white-space: pre;\">{output}</code>"
-        _print(output, end="")
+        ansi_text = "".join(sys.stdin.readlines())
+
+    output = conv.convert(ansi_text, full=full, ensure_trailing_newline=True)
+    if opts.standalone and not opts.latex:
+        output = f'<code style="white-space: pre;">{output}</code>'
+    _print(output, end="")
