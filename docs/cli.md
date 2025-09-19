@@ -38,7 +38,7 @@ Inline vs Standalone
 - `--inline`: emits only the converted content using inline styles (no `<html>`
   or `<style>` wrapper), suitable for embedding inside your own document.
 - `--standalone`: like `--inline` but additionally wraps the output in a
-  `<code class="ansi2html-standalone">...</code>` element for convenience.
+  `<code style='white-space: pre;'>...</code>` element for convenience.
 
 Notes
 - This mode captures both stdout and stderr from the command and converts them
